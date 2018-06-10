@@ -853,6 +853,23 @@ var pull_bounty_from_api = function() {
 };
 
 
+var process_activities = function(activities, bounty_activities) {
+  if (bounty_activities) {
+    bounty_activities.forEach(function(_activity) {
+      activities.push({
+        profileId: _activity.profile.id,
+        name: _activity.profile.handle,
+        // text: _activity.pending ? gettext('Worker Applied') : gettext('Work Started'),
+        text: activity_names[_activity.activity_type],
+        created_on: _activity.created,
+        age: timeDifference(new Date(result['now']), new Date(_activity.created)),
+        status: _activity.activity_type === 'work_started' ? 'started' : 'stopped',
+        uninterest_possible: false
+      });
+    });
+  }
+};
+
 var render_activity = function(result) {
   var activity_names = {
     work_started: gettext('Work Started'),
@@ -900,20 +917,7 @@ var render_activity = function(result) {
     });
   }
 
-  if (result.activities) {
-    result.activities.forEach(function(_activity) {
-      activities.push({
-        profileId: _activity.profile.id,
-        name: _activity.profile.handle,
-        // text: _activity.pending ? gettext('Worker Applied') : gettext('Work Started'),
-        text: activity_names[_activity.activity_type],
-        created_on: _activity.created,
-        age: timeDifference(new Date(result['now']), new Date(_activity.created)),
-        status: _activity.activity_type === 'work_started' ? 'started' : 'stopped',
-        uninterest_possible: false
-      });
-    });
-  }
+  process_activities(activities, result.activities);
 
   activities = activities.slice().sort(function(a, b) {
     return a['created_on'] < b['created_on'] ? -1 : 1;
