@@ -53,8 +53,8 @@ from web3 import HTTPProvider, Web3
 
 from .helpers import handle_bounty_views
 from .models import (
-    Bounty, CoinRedemption, CoinRedemptionRequest, Interest, Profile, ProfileSerializer, Subscription, Tip, Tool,
-    ToolVote, UserAction,
+    Activity, Bounty, CoinRedemption, CoinRedemptionRequest, Interest, Profile, ProfileSerializer, Subscription, Tip,
+    Tool, ToolVote, UserAction,
 )
 from .notifications import (
     maybe_market_tip_to_email, maybe_market_tip_to_github, maybe_market_tip_to_slack, maybe_market_to_github,
@@ -109,6 +109,28 @@ def record_user_action(user, event_name, instance):
         logging.error(f"error in record_action: {e} - {event_name} - {instance}")
 
 
+def record_bounty_activity(bounty, user, event_name):
+    kwargs = {
+        'activity_type': event_name,
+        'bounty': bounty,
+    }
+    if isinstance(user, str):
+        try:
+            user = User.objects.get(username=user)
+        except User.DoesNotExist:
+            return
+
+    if hasattr(user, 'profile'):
+        kwargs['profile'] = user.profile
+    else:
+        return
+
+    try:
+        Activity.objects.create(**kwargs)
+    except Exception as e:
+        logging.error(f"error in record_bounty_activity: {e} - {event_name} - {bounty} - {user}")
+
+
 def helper_handle_access_token(request, access_token):
     # https://gist.github.com/owocki/614a18fbfec7a5ed87c97d37de70b110
     # interest API via token
@@ -122,6 +144,7 @@ def create_new_interest_helper(bounty, user, issue_message):
     approval_required = bounty.permission_type == 'approval'
     acceptance_date = timezone.now() if not approval_required else None
     profile_id = user.profile.pk
+    record_bounty_activity(bounty, user, 'work_started')
     interest = Interest.objects.create(
         profile_id=profile_id,
         issue_message=issue_message,
@@ -290,6 +313,7 @@ def remove_interest(request, bounty_id):
     try:
         interest = Interest.objects.get(profile_id=profile_id, bounty=bounty)
         record_user_action(request.user, 'stop_work', interest)
+        record_bounty_activity(bounty, request.user, 'work_stopped')
         bounty.interested.remove(interest)
         interest.delete()
         maybe_market_to_slack(bounty, 'stop_work')
@@ -360,6 +384,7 @@ def uninterested(request, bounty_id, profile_id):
         else:
             event_name = "bounty_removed_by_funder"
         record_user_action_on_interest(interest, event_name, None)
+        record_bounty_activity(bounty, interest.profile.user, 'work_stopped')
         interest.delete()
     except Interest.DoesNotExist:
         return JsonResponse({

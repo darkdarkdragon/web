@@ -1038,6 +1038,29 @@ def psave_interest(sender, instance, **kwargs):
         bounty.save()
 
 
+class Activity(models.Model):
+    """Represent Start work/Stop work event.
+
+    Attributes:
+        ACTIVITY_TYPES (list of tuples): The valid activity types.
+
+    """
+
+    ACTIVITY_TYPES = [
+        ('work_started', 'Work Started'),
+        ('work_stopped', 'Work Stopped'),
+    ]
+    profile = models.ForeignKey('dashboard.Profile', related_name='activities', on_delete=models.CASCADE)
+    bounty = models.ForeignKey(Bounty, related_name='activities', on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    activity_type = models.CharField(max_length=50, choices=ACTIVITY_TYPES, blank=True)
+
+    def __str__(self):
+        """Define the string representation of an interested profile."""
+        return f"{self.profile.handle} type: {self.activity_type}" \
+               f"created: {naturalday(self.created_on)}"
+
+
 class Profile(SuperModel):
     """Define the structure of the user profile.
 

@@ -854,6 +854,10 @@ var pull_bounty_from_api = function() {
 
 
 var render_activity = function(result) {
+  var activity_names = {
+    work_started: gettext('Work Started'),
+    work_stopped: gettext('Work Stopped')
+  };
   var activities = [];
 
   if (result.fulfillments) {
@@ -896,9 +900,34 @@ var render_activity = function(result) {
     });
   }
 
+  if (result.activities) {
+    result.activities.forEach(function(_activity) {
+      activities.push({
+        profileId: _activity.profile.id,
+        name: _activity.profile.handle,
+        // text: _activity.pending ? gettext('Worker Applied') : gettext('Work Started'),
+        text: activity_names[_activity.activity_type],
+        created_on: _activity.created,
+        age: timeDifference(new Date(result['now']), new Date(_activity.created)),
+        status: _activity.activity_type === 'work_started' ? 'started' : 'stopped',
+        uninterest_possible: false
+      });
+    });
+  }
+
   activities = activities.slice().sort(function(a, b) {
     return a['created_on'] < b['created_on'] ? -1 : 1;
   }).reverse();
+
+  if (activities.length > 1) {
+    var a1 = activities[0];
+    var a2 = activities[1];
+
+    if (a1.profileId === a2.profileId && a1.status === a2.status && a2.status === 'started' &&
+      a1.text == a2.text) {
+      activities.splice(1, 1);
+    }
+  }
 
   var html = '<div class="row box activity"><div class="col-12 empty"><p>' + gettext('There\'s no activity yet!') + '</p></div></div>';
 
