@@ -59,7 +59,7 @@ class ActivitySerializer(serializers.ModelSerializer):
         """Define the activity serializer metadata."""
 
         model = Activity
-        fields = ('activity_type', 'created', 'profile')
+        fields = ('activity_type', 'created', 'profile', 'metadata', 'bounty', 'tip')
 
 
 # Serializers define the API representation.
@@ -125,7 +125,7 @@ class BountyViewSet(viewsets.ModelViewSet):
     """Handle the Bounty view behavior."""
 
     queryset = Bounty.objects.prefetch_related(
-        'fulfillments', 'interested', 'interested__profile') \
+        'fulfillments', 'interested', 'interested__profile', 'activities') \
         .all().order_by('-web3_created')
     serializer_class = BountySerializer
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
@@ -137,10 +137,13 @@ class BountyViewSet(viewsets.ModelViewSet):
             QuerySet: The Bounty queryset.
 
         """
-        queryset = Bounty.objects.prefetch_related(
-            'fulfillments', 'interested', 'interested__profile') \
-            .current().order_by('-web3_created')
         param_keys = self.request.query_params.keys()
+        queryset = Bounty.objects.prefetch_related(
+            'fulfillments', 'interested', 'interested__profile', 'activities')
+        if not 'not_current' in param_keys:
+            queryset = queryset.current()
+
+        queryset = queryset.order_by('-web3_created')
 
         # filtering
         for key in ['raw_data', 'experience_level', 'project_length', 'bounty_type', 'bounty_owner_address',

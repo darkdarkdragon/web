@@ -1047,13 +1047,25 @@ class Activity(models.Model):
     """
 
     ACTIVITY_TYPES = [
-        ('work_started', 'Work Started'),
-        ('work_stopped', 'Work Stopped'),
+        ('new_bounty', 'New Bounty'),
+        ('start_work', 'Work Started'),
+        ('stop_work', 'Work Stopped'),
+        ('work_submitted', 'Work Submitted'),
+        ('work_done', 'Work Done'),
+        ('worker_approved', 'Worker Approved'),
+        ('worker_rejected', 'Worker Rejected'),
+        ('worker_applied', 'Worker Applied'),
+        ('increased_bounty', 'Increased Funding'),
+        ('killed_bounty', 'Canceled Bounty'),
+        ('new_tip', 'New Tip'),
+        ('receive_tip', 'Tip Received'),
     ]
     profile = models.ForeignKey('dashboard.Profile', related_name='activities', on_delete=models.CASCADE)
-    bounty = models.ForeignKey(Bounty, related_name='activities', on_delete=models.CASCADE)
+    bounty = models.ForeignKey(Bounty, related_name='activities', on_delete=models.CASCADE, blank=True, null=True)
+    tip = models.ForeignKey(Tip, related_name='activities', on_delete=models.CASCADE, blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     activity_type = models.CharField(max_length=50, choices=ACTIVITY_TYPES, blank=True)
+    metadata = JSONField(default={})
 
     def __str__(self):
         """Define the string representation of an interested profile."""
